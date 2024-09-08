@@ -15,11 +15,13 @@
 #define STRNCASECMP strncasecmp
 #endif
 
+
+
 template <typename T> void check(T result, char const *const func, const char *const file, int const line)
 {
     if (result) {
-        fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line, static_cast<unsigned int>(result),
-                cudaGetErrorString(result), func);
+        // fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line, static_cast<unsigned int>(result),
+        //         cublasGetStatusName(result), func);
         exit(EXIT_FAILURE);
     }
 }
