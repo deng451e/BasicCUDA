@@ -13,7 +13,7 @@
 
 #include "memoryOpt.h"
 #include "timer.h"
-
+#include <assert.h>
 __global__ void vectorAdd(const float *A, const float *B, float *C, const int numElements)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -25,6 +25,9 @@ __global__ void vectorAdd(const float *A, const float *B, float *C, const int nu
 float vectorAddViaGlobalMemory(const unsigned int numElements, const unsigned int iterNum)
 {
 
+    cudaEvent_t start, stop;
+    checkCudaErrors(cudaEventCreate(&start));
+    checkCudaErrors(cudaEventCreate(&stop));
     StopWatchInterface *timer = NULL;
     float elapsedTimeInMs = 0.0f;
     float throughputInGBs = 0.0f;
@@ -41,12 +44,15 @@ float vectorAddViaGlobalMemory(const unsigned int numElements, const unsigned in
     float *h_B = (float *)malloc(memSize);
     float *h_C = (float *)malloc(memSize);
 
+    
+
+
     // Verify that allocations succeeded
     if (h_A == NULL || h_B == NULL || h_C == NULL) {
         fprintf(stderr, "Failed to allocate host vectors!\n");
         exit(EXIT_FAILURE);
     }
-
+     
     // Initialize the host input vectors
     for (int i = 0; i < numElements; ++i) {
         h_A[i] = rand() / (float)RAND_MAX;
@@ -61,19 +67,27 @@ float vectorAddViaGlobalMemory(const unsigned int numElements, const unsigned in
     checkCudaErrors(cudaMalloc((void **)&d_B, memSize));
     checkCudaErrors(cudaMalloc((void **)&d_C, memSize));
 
+
+    checkCudaErrors(cudaEventRecord(start, 0));
     for (unsigned int i = 0; i < iterNum; i++) {
-        sdkStartTimer(&timer);
+        // sdkStartTimer(&timer);
+        
         checkCudaErrors(cudaMemcpy(d_A, h_A, memSize, cudaMemcpyHostToDevice));
         checkCudaErrors(cudaMemcpy(d_B, h_B, memSize, cudaMemcpyHostToDevice));
+        
         vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
         checkCudaErrors(cudaGetLastError());
         // Copy the device result vector in device memory to the host result vector in host memory.
         checkCudaErrors(cudaMemcpy(h_C, d_C, memSize, cudaMemcpyDeviceToHost));
-        sdkStopTimer(&timer);
-        elapsedTimeInMs += sdkGetTimerValue(&timer);
-        sdkResetTimer(&timer);
+        // sdkStopTimer(&timer);
+      
+        // elapsedTimeInMs += elapsedTimeInMs_;
+        // sdkResetTimer(&timer);
     }
-
+    checkCudaErrors(cudaEventRecord(stop, 0));
+    checkCudaErrors(cudaDeviceSynchronize());
+    checkCudaErrors(cudaEventElapsedTime(&elapsedTimeInMs, start, stop));
+    // checkCudaErrors(cudaDeviceSynchronize());
     // Verify that the result vector is correct
     for (int i = 0; i < numElements; ++i) {
         if (fabs(h_A[i] + h_B[i] - h_C[i]) > 1e-5) {
@@ -103,7 +117,9 @@ float vectorAddViaGlobalMemory(const unsigned int numElements, const unsigned in
 
 float vectorAddViaZeroCopy(const unsigned int numElements, const unsigned int iterNum)
 {
-
+    cudaEvent_t start, stop;
+    checkCudaErrors(cudaEventCreate(&start));
+    checkCudaErrors(cudaEventCreate(&stop));
     StopWatchInterface *timer = NULL;
     float elapsedTimeInMs = 0.0f;
     float throughputInGBs = 0.0f;
@@ -146,18 +162,21 @@ float vectorAddViaZeroCopy(const unsigned int numElements, const unsigned int it
         h_A[i] = rand() / (float)RAND_MAX;
         h_B[i] = rand() / (float)RAND_MAX;
     }
-
+    checkCudaErrors(cudaEventRecord(start, 0));
     // Copy the host input vectors A and B in host memory to the device input vectors in device memory
     for (unsigned int i = 0; i < iterNum; i++) {
-        sdkStartTimer(&timer);
+        // sdkStartTimer(&timer);
         vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(map_A, map_B, map_C, numElements);
         checkCudaErrors(cudaGetLastError());
         // Copy the device result vector in device memory to the host result vector in host memory.
-        sdkStopTimer(&timer);
-        elapsedTimeInMs += sdkGetTimerValue(&timer);
-        sdkResetTimer(&timer);
+        // sdkStopTimer(&timer);
+        // elapsedTimeInMs += sdkGetTimerValue(&timer);
+        checkCudaErrors(cudaDeviceSynchronize());
+        // sdkResetTimer(&timer);
     }
-
+    checkCudaErrors(cudaEventRecord(stop, 0));
+    checkCudaErrors(cudaDeviceSynchronize());
+    checkCudaErrors(cudaEventElapsedTime(&elapsedTimeInMs, start, stop));
     checkCudaErrors(cudaDeviceSynchronize());
     // Verify that the result vector is correct
     for (int i = 0; i < numElements; ++i) {
@@ -191,7 +210,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
     unsigned int numElements = 5000000;
-    unsigned int iterNumbers = 1;
+    unsigned int iterNumbers = 100;
     unsigned int gpuID = 0;
 
     if (checkCmdLineFlag(argc, (const char **)argv, "device")) {
