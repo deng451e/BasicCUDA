@@ -40,10 +40,15 @@ float vectorAddViaGlobalMemory(const unsigned int numElements, const unsigned in
     int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
 
     // Allocate the host input vector A, B, C
-    float *h_A = (float *)malloc(memSize);
-    float *h_B = (float *)malloc(memSize);
-    float *h_C = (float *)malloc(memSize);
-
+    // float *h_A = (float *)malloc(memSize);
+    // float *h_B = (float *)malloc(memSize);
+    // float *h_C = (float *)malloc(memSize);
+    float *h_A = NULL;
+    float *h_B = NULL;
+    float *h_C = NULL;
+    checkCudaErrors(cudaHostAlloc((void **)&h_A, memSize, cudaHostAllocMapped));
+    checkCudaErrors(cudaHostAlloc((void **)&h_B, memSize, cudaHostAllocMapped));
+    checkCudaErrors(cudaHostAlloc((void **)&h_C, memSize, cudaHostAllocMapped));
     
 
 
@@ -77,6 +82,7 @@ float vectorAddViaGlobalMemory(const unsigned int numElements, const unsigned in
         
         vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements);
         checkCudaErrors(cudaGetLastError());
+         
         // Copy the device result vector in device memory to the host result vector in host memory.
         checkCudaErrors(cudaMemcpy(h_C, d_C, memSize, cudaMemcpyDeviceToHost));
         // sdkStopTimer(&timer);
@@ -108,10 +114,12 @@ float vectorAddViaGlobalMemory(const unsigned int numElements, const unsigned in
     checkCudaErrors(cudaFree(d_C));
 
     // Free host memory
-    free(h_A);
-    free(h_B);
-    free(h_C);
-
+    // free(h_A);
+    // free(h_B);
+    // free(h_C);
+    checkCudaErrors(cudaFreeHost(h_A));
+    checkCudaErrors(cudaFreeHost(h_B));
+    checkCudaErrors(cudaFreeHost(h_C));
     return throughputInGBs;
 }
 
@@ -210,7 +218,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
     unsigned int numElements = 5000000;
-    unsigned int iterNumbers = 100;
+    unsigned int iterNumbers = 500;
     unsigned int gpuID = 0;
 
     if (checkCmdLineFlag(argc, (const char **)argv, "device")) {
@@ -231,6 +239,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     printf(">. Data tranfer via global memory.  VectorAdd throughput: %f GB/s\n",
            vectorAddViaGlobalMemory(numElements, iterNumbers));
+
     printf(">. Data tranfer via  zero copy.     VectorAdd throughput: %f GB/s\n",
            vectorAddViaZeroCopy(numElements, iterNumbers));
 
