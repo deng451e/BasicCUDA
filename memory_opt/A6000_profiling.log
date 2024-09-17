@@ -1,0 +1,22 @@
+make: Nothing to be done for 'all'.
+Run all demo:
+[Host and Device Memory Opt Demo:] - Starting...
+Test data transfer with pageable memory
+>. hostToDeviceTransfer bandwith: 10.328203 GB/s
+>. deviceToHostTransfer bandwith: 14.867721 GB/s
+Test data transfer with pinned memory
+>. hostToDeviceTransferWithPinned bandwith: 25.029446 GB/s
+>. deviceToHostTransferWithPinned bandwith: 26.255821 GB/s
+[Next]
+[Device to Device Memory Opt Demo:] - Starting...
+>. Device to itself transfer.             Bandwith: 677.367676 GB/s
+>. Device to device transfer without p2p. Bandwith: 21.340063 GB/s
+>. Device to device transfer with p2p     Bandwith: 22.432735 GB/s
+[Next]
+[Shared Memory Application: Array Sum.] - Starting...
+Sum array with shared memory.       Elapsed time: 0.006692 ms 
+Sum array without shared memory.    Elapsed time: 0.007614 ms 
+[Next]
+[Zero Copy Opt Vector Add] - Starting...
+>. Data tranfer via global memory.  VectorAdd throughput: 8.129109 GB/s
+>. Data tranfer via  zero copy.     VectorAdd throughput: 11.948059 GB/s
